@@ -5,5 +5,5 @@ export default defineConfig({
   format: ["cjs", "esm"],
   dts: true,
   clean: true,
-  noExternal: ["lz4js"],
+  noExternal: ["lz4js", "blake2b"],
 });
