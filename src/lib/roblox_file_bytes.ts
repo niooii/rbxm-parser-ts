@@ -57,9 +57,9 @@ export class RobloxFileByteReader
         return this.getUintOfSize(4);
     }
 
-    public static bytesToInt32(bytes: Uint8Array) 
+    public static bytesToInt32(bytes: Uint8Array)
     {
-        return Buffer.from(bytes).readInt32BE(0);
+        return new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getInt32(0, false);
     }
 
     public static untransformInt32(int32: number) 
@@ -90,8 +90,7 @@ export class RobloxFileByteReader
         // Convert back to a byte array
         const outBytes = bitsToByteArray(standardBitArray);
 
-        // Use Buffer to convert to a float
-        return Buffer.from(outBytes).readFloatBE(0);
+        return new DataView(outBytes.buffer, outBytes.byteOffset, outBytes.byteLength).getFloat32(0, false);
     }
 
     protected getBytesReversed(numBytes: number) 
@@ -107,7 +106,7 @@ export class RobloxFileByteReader
     public getInt16() 
     {
         const bytes = this.getBytes(2);
-        return Buffer.from(bytes).readInt16LE(0);
+        return new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getInt16(0, true);
     }
 
     public getInt32() 
@@ -119,19 +118,19 @@ export class RobloxFileByteReader
     public getInt64() 
     {
         const bytes = this.getBytes(8);
-        return Buffer.from(bytes).readBigInt64LE(0);
+        return new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getBigInt64(0, true);
     }
 
     public getFloat32() 
     {
         const bytes = this.getBytes(4);
-        return Buffer.from(bytes).readFloatLE(0);
+        return new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getFloat32(0, true);
     }
 
     public getFloat64() 
     {
         const bytes = this.getBytes(8);
-        return Buffer.from(bytes).readDoubleLE(0);
+        return new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getFloat64(0, true);
     }
 
     public getBytes(numBytes: number) 
@@ -215,7 +214,7 @@ export class RobloxFileByteReader
         const interleavedBytes = this.getBytes(length * 4);
 
         // Convert interleaved bytes to Uint32 array
-        return RobloxFileByteReader.convertInterleaved(interleavedBytes, length, (bytes) => Buffer.from(bytes).readUint32BE(0));
+        return RobloxFileByteReader.convertInterleaved(interleavedBytes, length, (bytes) => new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(0, false));
     }
 
     public getInterleavedInt64Array(length: number) 
@@ -223,7 +222,7 @@ export class RobloxFileByteReader
         const interleavedBytes = this.getBytes(length * 8);
 
         // Convert interleaved bytes to Uint32 array
-        const bytes = RobloxFileByteReader.convertInterleaved(interleavedBytes, length, (bytes) => Buffer.from(bytes).readBigInt64BE(0));
+        const bytes = RobloxFileByteReader.convertInterleaved(interleavedBytes, length, (bytes) => new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getBigInt64(0, false));
 
         // Have to untransform the ints
         return bytes.map(RobloxFileByteReader.untransformInt64);
@@ -234,7 +233,7 @@ export class RobloxFileByteReader
         const interleavedBytes = this.getBytes(length * 8);
 
         // Convert interleaved bytes to Uint32 array
-        return RobloxFileByteReader.convertInterleaved(interleavedBytes, length, (bytes) => Buffer.from(bytes).readBigUint64BE(0));
+        return RobloxFileByteReader.convertInterleaved(interleavedBytes, length, (bytes) => new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getBigUint64(0, false));
     }
 
     public getFloat32Array(length: number) 
@@ -285,25 +284,25 @@ export class RobloxFileByteWriter
         this.data.push(uint8);
     }
 
-    public putUint16(uint16: number) 
+    public putUint16(uint16: number)
     {
-        const buf = Buffer.alloc(2);
-        buf.writeUInt16LE(uint16);
-        this.putBytes(buf);
+        const buf = new ArrayBuffer(2);
+        new DataView(buf).setUint16(0, uint16, true);
+        this.putBytes(new Uint8Array(buf));
     }
 
-    public putUint32(uint32: number) 
+    public putUint32(uint32: number)
     {
-        const buf = Buffer.alloc(4);
-        buf.writeUInt32LE(uint32);
-        this.putBytes(buf);
+        const buf = new ArrayBuffer(4);
+        new DataView(buf).setUint32(0, uint32, true);
+        this.putBytes(new Uint8Array(buf));
     }
 
-    public static int32ToBytes(int32: number) 
+    public static int32ToBytes(int32: number)
     {
-        const buf = Buffer.alloc(4);
-        buf.writeInt32BE(int32);
-        return buf;
+        const buf = new ArrayBuffer(4);
+        new DataView(buf).setInt32(0, int32, false);
+        return new Uint8Array(buf);
     }
 
     public static transformInt32(int32: number) 
@@ -322,8 +321,9 @@ export class RobloxFileByteWriter
         // Standard format: seeeeeee emmmmmmm mmmmmmmm mmmmmmmm
         // Roblox format:   eeeeeeee mmmmmmmm mmmmmmmm mmmmmmms
         // We will swap the sign bit by interpreting the data as bits and swapping the sign bit from the back to the front.
-        const bytes = Buffer.allocUnsafe(4);
-        bytes.writeFloatBE(f32);
+        const buf = new ArrayBuffer(4);
+        new DataView(buf).setFloat32(0, f32, false);
+        const bytes = new Uint8Array(buf);
 
         const origBitArray = bytesToBitArray(bytes);
         const robloxBitArray = new Uint8Array(32);
@@ -346,11 +346,11 @@ export class RobloxFileByteWriter
         }
     }
 
-    public putInt16(int16: number) 
+    public putInt16(int16: number)
     {
-        const buf = Buffer.alloc(2);
-        buf.writeInt16LE(int16);
-        this.putBytes(buf);
+        const buf = new ArrayBuffer(2);
+        new DataView(buf).setInt16(0, int16, true);
+        this.putBytes(new Uint8Array(buf));
     }
 
     public putInt32(int32: number) 
@@ -358,25 +358,25 @@ export class RobloxFileByteWriter
         this.putBytesReversed(RobloxFileByteWriter.int32ToBytes(int32));
     }
 
-    public putInt64(int64: bigint) 
+    public putInt64(int64: bigint)
     {
-        const buf = Buffer.alloc(8);
-        buf.writeBigInt64LE(int64);
-        this.putBytes(buf);
+        const buf = new ArrayBuffer(8);
+        new DataView(buf).setBigInt64(0, int64, true);
+        this.putBytes(new Uint8Array(buf));
     }
 
-    public putFloat32(f32: number) 
+    public putFloat32(f32: number)
     {
-        const buf = Buffer.alloc(4);
-        buf.writeFloatLE(f32);
-        this.putBytes(buf);
+        const buf = new ArrayBuffer(4);
+        new DataView(buf).setFloat32(0, f32, true);
+        this.putBytes(new Uint8Array(buf));
     }
 
-    public putFloat64(f64: number) 
+    public putFloat64(f64: number)
     {
-        const buf = Buffer.alloc(8);
-        buf.writeDoubleLE(f64);
-        this.putBytes(buf);
+        const buf = new ArrayBuffer(8);
+        new DataView(buf).setFloat64(0, f64, true);
+        this.putBytes(new Uint8Array(buf));
     }
 
     public putBytes(bytes: Uint8Array) 
@@ -442,9 +442,10 @@ export class RobloxFileByteWriter
         const bytes = new Uint8Array(nums.length * 4);
         for (let i = 0; i < nums.length; ++i) 
         {
-            const buf = Buffer.allocUnsafe(4);
-            buf.writeInt32BE(RobloxFileByteWriter.transformInt32(nums[i]));
-            for (let j = 0; j < 4; ++j) 
+            const ab = new ArrayBuffer(4);
+            new DataView(ab).setInt32(0, RobloxFileByteWriter.transformInt32(nums[i]), false);
+            const buf = new Uint8Array(ab);
+            for (let j = 0; j < 4; ++j)
             {
                 bytes[(i * 4) + j] = buf[j];
             }
@@ -457,9 +458,10 @@ export class RobloxFileByteWriter
         const bytes = new Uint8Array(nums.length * 4);
         for (let i = 0; i < nums.length; ++i) 
         {
-            const buf = Buffer.allocUnsafe(4);
-            buf.writeUint32BE(nums[i]);
-            for (let j = 0; j < 4; ++j) 
+            const ab = new ArrayBuffer(4);
+            new DataView(ab).setUint32(0, nums[i], false);
+            const buf = new Uint8Array(ab);
+            for (let j = 0; j < 4; ++j)
             {
                 bytes[(i * 4) + j] = buf[j];
             }
@@ -472,9 +474,10 @@ export class RobloxFileByteWriter
         const bytes = new Uint8Array(nums.length * 8);
         for (let i = 0; i < nums.length; ++i) 
         {
-            const buf = Buffer.allocUnsafe(8);
-            buf.writeBigInt64BE(RobloxFileByteWriter.transformInt64(nums[i]));
-            for (let j = 0; j < 8; ++j) 
+            const ab = new ArrayBuffer(8);
+            new DataView(ab).setBigInt64(0, RobloxFileByteWriter.transformInt64(nums[i]), false);
+            const buf = new Uint8Array(ab);
+            for (let j = 0; j < 8; ++j)
             {
                 bytes[(i * 8) + j] = buf[j];
             }
@@ -487,9 +490,10 @@ export class RobloxFileByteWriter
         const bytes = new Uint8Array(nums.length * 8);
         for (let i = 0; i < nums.length; ++i) 
         {
-            const buf = Buffer.allocUnsafe(8);
-            buf.writeBigUint64BE(nums[i]);
-            for (let j = 0; j < 4; ++j) 
+            const ab = new ArrayBuffer(8);
+            new DataView(ab).setBigUint64(0, nums[i], false);
+            const buf = new Uint8Array(ab);
+            for (let j = 0; j < 8; ++j)
             {
                 bytes[(i * 8) + j] = buf[j];
             }

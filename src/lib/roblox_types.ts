@@ -1331,11 +1331,16 @@ export class SharedString
         this.Value = value;
         if (hash)
         {
-            this.Hash = Buffer.from(hash, "binary");
+            const bytes = new Uint8Array(hash.length);
+            for (let i = 0; i < hash.length; ++i)
+            {
+                bytes[i] = hash.charCodeAt(i);
+            }
+            this.Hash = bytes;
         }
         else
         {
-            const input = Buffer.from(this.Value);
+            const input = new TextEncoder().encode(this.Value);
             this.Hash = blake2b(16).update(input).digest();
         }
     }

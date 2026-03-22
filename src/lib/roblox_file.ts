@@ -63,8 +63,8 @@ export class RobloxFile extends ChildContainer
     }
 
     /**
-     * Writes this model to a Buffer and returns it.
-     * @returns a Buffer object that contains the file data in binary form
+     * Writes this model to a Uint8Array and returns it.
+     * @returns a Uint8Array that contains the file data in binary form
      * @example const buffer = file.WriteToBuffer();
      * fs.writeFileSync("my_roblox_file.rbxm", buffer);
      */
@@ -80,9 +80,8 @@ export class RobloxFile extends ChildContainer
      * @returns a Roblox file object
      * @example const file = RobloxFile.ReadFromBuffer(fs.readFileSync("my_file.rbxm"));
      */
-    public static ReadFromBuffer(buffer: Buffer)
+    public static ReadFromBuffer(buffer: Uint8Array)
     {
-        const data = Uint8Array.from(buffer);
-        return new RobloxFileDOMReader().read(data);
+        return new RobloxFileDOMReader().read(buffer);
     }
 }
