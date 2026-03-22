@@ -20,7 +20,8 @@
     "main": "npx tsx ./src/main.ts",
     "generate": "npx tsx ./src/generated/generate_data.ts",
     "build": "tsup src/index.ts --format cjs,esm --dts --clean",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "prepare": "tsup src/index.ts --format cjs,esm --dts --clean"
   },
   "keywords": [
     "roblox",
@@ -41,7 +42,6 @@
     "eslint": "^8.57.0",
     "globals": "^15.0.0",
     "ts-node": "^10.9.2",
-    "tsup": "^8.0.2",
     "tsx": "^4.7.3",
     "typescript": "^5.4.5",
     "typescript-eslint": "^7.7.0"
@@ -49,6 +49,7 @@
   "dependencies": {
     "blake2b": "^2.1.4",
     "fzstd": "^0.1.1",
+    "tsup": "^8.5.1",
     "lz4js": "^0.2.0"
   },
   "repository": {
