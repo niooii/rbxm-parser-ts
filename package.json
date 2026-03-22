@@ -19,9 +19,9 @@
     "lint": "eslint . --ext .ts",
     "main": "npx tsx ./src/main.ts",
     "generate": "npx tsx ./src/generated/generate_data.ts",
-    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "build": "tsup",
     "prepublishOnly": "npm run build",
-    "prepare": "tsup src/index.ts --format cjs,esm --dts --clean"
+    "prepare": "tsup"
   },
   "keywords": [
     "roblox",
