@@ -411,6 +411,9 @@ export class CoreInstance extends ChildContainer
     protected _parent?: CoreInstance = undefined;
     protected _destroyed: boolean = false;
 
+    // A map of arbitrary state for consumers of the API to use while walking the model tree
+    public state: Record<string, any> = {};
+    
     /**
      * Creates a new Instance.
      * @param isService whether or not this is a service, false by default
