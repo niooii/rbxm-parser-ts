@@ -19,8 +19,7 @@ type PropValue = {
 /**
  * This class can write bytes in .rbxm format to a buffer from a given RobloxFile
  */
-export class RobloxFileDOMWriter extends RobloxFileDOM
-{
+export class RobloxFileDOMWriter extends RobloxFileDOM {
     protected model: RobloxFile;
     protected bytesArray: Uint8Array[] = [];
     protected numBytes = 0;
@@ -31,14 +30,12 @@ export class RobloxFileDOMWriter extends RobloxFileDOM
     protected numClasses = 0;
     protected classMap: ClassMap = new ClassMap();
 
-    public constructor(model: RobloxFile)
-    {
+    public constructor(model: RobloxFile) {
         super();
         this.model = model;
     }
 
-    public write()
-    {
+    public write() {
         this.setup();
 
         this.writeHeader();
@@ -46,19 +43,16 @@ export class RobloxFileDOMWriter extends RobloxFileDOM
         const metaBytes = this.writeMetaChunk();
 
         const classWriter = new RobloxFileByteWriter();
-        for (const classId of this.sortedClassIds)
-        {
+        for (const classId of this.sortedClassIds) {
             classWriter.putBytes(this.writeInstChunk(classId, this.classIdToInfo.get(classId)!));
         }
         const classBytes = classWriter.bytes;
 
         const propWriter = new RobloxFileByteWriter();
-        for (const classId of this.sortedClassIds)
-        {
+        for (const classId of this.sortedClassIds) {
             const info = this.classIdToInfo.get(classId)!;
             const props = this.collectProperties(info.instances);
-            for (const prop of props)
-            {
+            for (const prop of props) {
                 propWriter.putBytes(this.writePropChunk(classId, info.instances, prop.name, prop.type));
             }
         }
@@ -82,10 +76,8 @@ export class RobloxFileDOMWriter extends RobloxFileDOM
 
         const buf = new Uint8Array(this.numBytes);
         let i = 0;
-        for (const bytes of this.bytesArray)
-        {
-            for (const byte of bytes)
-            {
+        for (const bytes of this.bytesArray) {
+            for (const byte of bytes) {
                 buf[i] = byte;
                 ++i;
             }
@@ -93,21 +85,16 @@ export class RobloxFileDOMWriter extends RobloxFileDOM
         return buf;
     }
 
-    protected collectProperties(instances: CoreInstance[])
-    {
+    protected collectProperties(instances: CoreInstance[]) {
         const props = new Map<string, DataType>();
         const sortedProps: PropValue[] = [];
-        for (const inst of instances)
-        {
-            for (const [name, value] of inst.Props)
-            {
-                if (!props.has(name))
-                {
+        for (const inst of instances) {
+            for (const [name, value] of inst.Props) {
+                if (!props.has(name)) {
                     props.set(name, value.type);
-                    sortedProps.push({name: name, type: value.type});
+                    sortedProps.push({ name: name, type: value.type });
                 }
-                else if (props.get(name) !== value.type)
-                {
+                else if (props.get(name) !== value.type) {
                     throw new Error(`Found instances with non-unique property types (class ${inst.ClassName}, property: ${name}, types: ${DataType[props.get(name)!]} and ${DataType[value.type]})`);
                 }
             }
@@ -116,8 +103,7 @@ export class RobloxFileDOMWriter extends RobloxFileDOM
         return sortedProps;
     }
 
-    protected setup()
-    {
+    protected setup() {
         const instances = this.model.GetAllDescendants();
         this.numInstances = instances.length;
 
@@ -125,20 +111,17 @@ export class RobloxFileDOMWriter extends RobloxFileDOM
         const classNameToId = new Map<string, number>();
         let lastReferent = -1;
         let lastClassId = -1;
-        for (const instance of instances)
-        {
-            if (instance.IsDestroyed)
-            {
+        for (const instance of instances) {
+            if (instance.IsDestroyed) {
                 continue; // Shouldn't happen but check anyway...
             }
-            
+
             // Referent IDs
             ++lastReferent;
             this.instToRefId.set(instance, lastReferent);
 
             // Class IDs + extra info
-            if (!classNameToId.has(instance.ClassName))
-            {
+            if (!classNameToId.has(instance.ClassName)) {
                 ++lastClassId;
                 classNameToId.set(instance.ClassName, lastClassId);
                 this.classIdToInfo.set(lastClassId, {
@@ -149,14 +132,13 @@ export class RobloxFileDOMWriter extends RobloxFileDOM
                 });
                 this.sortedClassIds.push(lastClassId);
             }
-            else
-            {
+            else {
                 const classId = classNameToId.get(instance.ClassName)!;
                 const info = this.classIdToInfo.get(classId)!;
                 info.instances.push(instance);
                 info.referentIdToIndex.set(lastReferent, info.instances.length - 1);
             }
-            
+
         }
 
         // Sort by class ID which matches how Roblox saves the file
@@ -164,14 +146,12 @@ export class RobloxFileDOMWriter extends RobloxFileDOM
         this.sortedClassIds.sort((id1, id2) => this.classIdToInfo.get(id1)!.name > this.classIdToInfo.get(id2)!.name ? 1 : -1);
     }
 
-    protected writeBytes(bytes: Uint8Array)
-    {
+    protected writeBytes(bytes: Uint8Array) {
         this.numBytes += bytes.length;
         this.bytesArray.push(bytes);
     }
 
-    protected writeHeader()
-    {
+    protected writeHeader() {
         const writer = new RobloxFileByteWriter();
         writer.putStringAsBytes(this.MAGIC_HEADER);
         writer.putUint16(0); // Version
@@ -181,8 +161,7 @@ export class RobloxFileDOMWriter extends RobloxFileDOM
         this.writeBytes(writer.bytes);
     }
 
-    protected writeChunk(type: ChunkType, data: Uint8Array)
-    {
+    protected writeChunk(type: ChunkType, data: Uint8Array) {
         const writer = new RobloxFileByteWriter();
         const { compressedLength, uncompressedLength, bytes } = this.compressData(type, data);
         writer.putStringAsBytes(type);
@@ -193,10 +172,8 @@ export class RobloxFileDOMWriter extends RobloxFileDOM
         return writer.bytes;
     }
 
-    protected compressData(type: ChunkType, data: Uint8Array)
-    {
-        if (type === ChunkType.END)
-        {
+    protected compressData(type: ChunkType, data: Uint8Array) {
+        if (type === ChunkType.END) {
             // Don't compress the end chunk
             return {
                 compressedLength: 0,
@@ -209,6 +186,15 @@ export class RobloxFileDOMWriter extends RobloxFileDOM
         const hashTable = new Uint32Array(1 << 16);
         const size = lz4.compressBlock(data, bytes, 0, data.length, hashTable);
 
+        // lz4 returns 0 when data is too small to compress so we fall back to uncompressed
+        if (size === 0) {
+            return {
+                compressedLength: 0,
+                uncompressedLength: data.length,
+                bytes: data
+            };
+        }
+
         return {
             compressedLength: size,
             uncompressedLength: data.length,
@@ -216,10 +202,8 @@ export class RobloxFileDOMWriter extends RobloxFileDOM
         };
     }
 
-    protected writeMetaChunk()
-    {
-        if (this.model.Metadata.size < 1)
-        {
+    protected writeMetaChunk() {
+        if (this.model.Metadata.size < 1) {
             return new Uint8Array();
         }
 
@@ -227,8 +211,7 @@ export class RobloxFileDOMWriter extends RobloxFileDOM
 
         writer.putUint32(this.model.Metadata.size);
 
-        for (const [key, value] of this.model.Metadata)
-        {
+        for (const [key, value] of this.model.Metadata) {
             writer.putString(key);
             writer.putString(value);
         }
@@ -236,10 +219,8 @@ export class RobloxFileDOMWriter extends RobloxFileDOM
         return this.writeChunk(ChunkType.META, writer.bytes);
     }
 
-    protected writeSstrChunk()
-    {
-        if (this.model.SharedStrings.length < 1)
-        {
+    protected writeSstrChunk() {
+        if (this.model.SharedStrings.length < 1) {
             return new Uint8Array();
         }
 
@@ -248,8 +229,7 @@ export class RobloxFileDOMWriter extends RobloxFileDOM
         writer.putUint32(0); // Version
         writer.putUint32(this.model.SharedStrings.length);
 
-        for (const sharedString of this.model.SharedStrings)
-        {
+        for (const sharedString of this.model.SharedStrings) {
             writer.putBytes(sharedString.Hash);
             writer.putString(sharedString.Value);
         }
@@ -257,8 +237,7 @@ export class RobloxFileDOMWriter extends RobloxFileDOM
         return this.writeChunk(ChunkType.SSTR, writer.bytes);
     }
 
-    protected writeInstChunk(classId: number, info: RobloxClass)
-    {
+    protected writeInstChunk(classId: number, info: RobloxClass) {
         const writer = new RobloxFileByteWriter();
 
         writer.putUint32(classId);
@@ -267,18 +246,15 @@ export class RobloxFileDOMWriter extends RobloxFileDOM
         writer.putUint32(info.instances.length);
 
         const refs: number[] = [];
-        for (const inst of info.instances)
-        {
+        for (const inst of info.instances) {
             refs.push(this.instToRefId.get(inst)!);
         }
-        
+
         writer.putReferentArray(refs);
 
-        if (info.isService)
-        {
+        if (info.isService) {
             const serviceMarkers = new Uint8Array(info.instances.length);
-            for (let i = 0; i < info.instances.length; ++i)
-            {
+            for (let i = 0; i < info.instances.length; ++i) {
                 serviceMarkers[i] = 1;
             }
             writer.putBytes(serviceMarkers);
@@ -287,8 +263,7 @@ export class RobloxFileDOMWriter extends RobloxFileDOM
         return this.writeChunk(ChunkType.INST, writer.bytes);
     }
 
-    protected writePropChunk(classId: number, instances: CoreInstance[], propName: string, type: DataType)
-    {
+    protected writePropChunk(classId: number, instances: CoreInstance[], propName: string, type: DataType) {
         const parser = this.dataTypeParsers.get(type);
         if (!parser) return new Uint8Array();
 
@@ -299,41 +274,35 @@ export class RobloxFileDOMWriter extends RobloxFileDOM
         writer.putUint8(type);
 
         let info: DataParserExtraInfo | undefined;
-        if (type === DataType.Referent)
-        {
+        if (type === DataType.Referent) {
             info = { getReferentFromInstance: (instance) => this.instToRefId.get(instance) ?? -1 };
         }
-        else if (type === DataType.SharedString)
-        {
+        else if (type === DataType.SharedString) {
             info = { sharedStrings: this.model.SharedStrings };
         }
-       
+
         parser.write(writer, instances.map((inst) => this.getPropFromInstance(inst, propName)), info);
 
         return this.writeChunk(ChunkType.PROP, writer.bytes);
     }
 
-    protected getPropFromInstance(instance: CoreInstance, propName: string): RobloxValue | undefined
-    {
+    protected getPropFromInstance(instance: CoreInstance, propName: string): RobloxValue | undefined {
         const prop = instance.Props.get(propName);
-        if (prop)
-        {
+        if (prop) {
             return prop;
         }
-        
+
         const classFactory = this.classMap.getFactory(instance.ClassName);
-        if (classFactory)
-        {
+        if (classFactory) {
             const mockInstance = classFactory();
             const mockProp = mockInstance.Props.get(propName);
             return mockProp;
         }
-        
+
         return undefined;
     }
 
-    protected writePrntChunk()
-    {
+    protected writePrntChunk() {
         const writer = new RobloxFileByteWriter();
 
         writer.putUint8(0);
@@ -344,8 +313,7 @@ export class RobloxFileDOMWriter extends RobloxFileDOM
 
         const childRefs: number[] = [];
         const parentRefs: number[] = [];
-        for (const inst of sortedInsts)
-        {   
+        for (const inst of sortedInsts) {
             const ref = this.instToRefId.get(inst)!;
             childRefs.push(ref);
             const parentRef = inst.Parent ? this.instToRefId.get(inst.Parent)! : -1;
@@ -358,8 +326,7 @@ export class RobloxFileDOMWriter extends RobloxFileDOM
         return this.writeChunk(ChunkType.PRNT, writer.bytes);
     }
 
-    protected writeEndChunk()
-    {
+    protected writeEndChunk() {
         const writer = new RobloxFileByteWriter();
 
         writer.putStringAsBytes(this.MAGIC_END);
