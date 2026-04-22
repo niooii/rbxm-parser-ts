@@ -1130,6 +1130,62 @@ export class CFrame implements ICopyable
      */
     public static get Identity() { return new CFrame(new Vector3(0, 0, 0), [1, 0, 0, 0, 1, 0, 0, 0, 1]); }
 
+    /**
+     * Multiplies this CFrame by another CFrame, composing their transformations.
+     * @param other the other CFrame
+     * @returns the composed CFrame
+     */
+    public Multiply(other: CFrame)
+    {
+        const a = this.Orientation;
+        const b = other.Orientation;
+        const p = other.Position;
+
+        return new CFrame(
+            new Vector3(
+                this.Position.X + a[0]*p.X + a[1]*p.Y + a[2]*p.Z,
+                this.Position.Y + a[3]*p.X + a[4]*p.Y + a[5]*p.Z,
+                this.Position.Z + a[6]*p.X + a[7]*p.Y + a[8]*p.Z
+            ),
+            [
+                a[0]*b[0] + a[1]*b[3] + a[2]*b[6],
+                a[0]*b[1] + a[1]*b[4] + a[2]*b[7],
+                a[0]*b[2] + a[1]*b[5] + a[2]*b[8],
+
+                a[3]*b[0] + a[4]*b[3] + a[5]*b[6],
+                a[3]*b[1] + a[4]*b[4] + a[5]*b[7],
+                a[3]*b[2] + a[4]*b[5] + a[5]*b[8],
+
+                a[6]*b[0] + a[7]*b[3] + a[8]*b[6],
+                a[6]*b[1] + a[7]*b[4] + a[8]*b[7],
+                a[6]*b[2] + a[7]*b[5] + a[8]*b[8]
+            ]
+        );
+    }
+
+    /**
+     * Returns the inverse of this CFrame.
+     * @returns the inverse CFrame
+     */
+    public Inverse()
+    {
+        const a = this.Orientation;
+        const p = this.Position;
+
+        return new CFrame(
+            new Vector3(
+                -(a[0]*p.X + a[3]*p.Y + a[6]*p.Z),
+                -(a[1]*p.X + a[4]*p.Y + a[7]*p.Z),
+                -(a[2]*p.X + a[5]*p.Y + a[8]*p.Z)
+            ),
+            [
+                a[0], a[3], a[6],
+                a[1], a[4], a[7],
+                a[2], a[5], a[8]
+            ]
+        );
+    }
+
     public toString()
     {
         return `CFrame(Position: ${this.Position}, Orientation: [${this.Orientation.map(formatNum).join(", ")}])`;
