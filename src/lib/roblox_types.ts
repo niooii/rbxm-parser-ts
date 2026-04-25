@@ -534,17 +534,17 @@ export class CoreInstance extends ChildContainer
      * @example
      * part.SetProp("size", DataType.Vector3, new Vector3(2, 3, 4));
      */
-    public SetProp<T extends DataType>(propName: string, type: T, value: PropKeyType[T] | undefined)
+    public SetProp<T extends DataType>(propName: string, type: T, value: PropKeyType[T] | undefined, firesModifiedEvents: boolean = true)
     {
         if (value === undefined)
         {
             this._props.delete(propName);
-            this.firePropConnections(propName, undefined);
+            if (firesModifiedEvents) this.firePropConnections(propName, undefined);
             return;
         }
         const valueCopy = CoreInstance.CopyValue({ type: type, value: value } as RobloxValue) as PropKeyType[T];
         this._props.set(propName, { type: type, value: valueCopy } as RobloxValue);
-        this.firePropConnections(propName, value);
+        if (firesModifiedEvents) this.firePropConnections(propName, value);
     }
 
     protected firePropConnections(propName: string, newValue: any)
@@ -572,7 +572,7 @@ export class CoreInstance extends ChildContainer
      * @param runImmediately whether to run the callback immediately with the current value of the property, defaults to true
      * @returns the Connection object representing the now active connection.
      */
-    public GetPropModifiedEvent<T extends DataType>(propName: string, type: T, onChange: (newValue: PropKeyType[T] | undefined) => any, runImmediately: boolean = true): PropModifiedConnection
+    public OnPropModified<T extends DataType>(propName: string, type: T, onChange: (newValue: PropKeyType[T] | undefined) => any, runImmediately: boolean = true): PropModifiedConnection
     {
         const connection = new PropModifiedConnection(onChange);
         let connections = this._propConnections.get(propName);
