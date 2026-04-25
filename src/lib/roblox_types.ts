@@ -400,6 +400,29 @@ export abstract class ChildContainer
     }
 }
 
+type PropModifiedCallback = (newValue: any) => any;
+
+export class PropModifiedConnection
+{
+    /** @internal */
+    _callback: PropModifiedCallback | undefined;
+
+    public constructor(callback: PropModifiedCallback)
+    {
+        this._callback = callback;
+    }
+
+    public get Connected(): boolean
+    {
+        return this._callback !== undefined;
+    }
+
+    public Disconnect()
+    {
+        this._callback = undefined;
+    }
+}
+
 /**
  * Represents a single Roblox Instance. This is the base class of every Roblox object.
  */
@@ -408,6 +431,7 @@ export class CoreInstance extends ChildContainer
     protected readonly _classNameList: string[] = [];
     protected _isService: boolean;
     protected readonly _props: Map<string, RobloxValue> = new Map<string, RobloxValue>();
+    protected readonly _propConnections: Map<string, Set<PropModifiedConnection>> = new Map<string, Set<PropModifiedConnection>>();
     protected _parent?: CoreInstance = undefined;
     protected _destroyed: boolean = false;
 
@@ -515,10 +539,54 @@ export class CoreInstance extends ChildContainer
         if (value === undefined)
         {
             this._props.delete(propName);
+            this.firePropConnections(propName, undefined);
             return;
         }
         const valueCopy = CoreInstance.CopyValue({ type: type, value: value } as RobloxValue) as PropKeyType[T];
         this._props.set(propName, { type: type, value: valueCopy } as RobloxValue);
+        this.firePropConnections(propName, value);
+    }
+
+    protected firePropConnections(propName: string, newValue: any)
+    {
+        const connections = this._propConnections.get(propName);
+        if (!connections) return;
+        for (const connection of connections)
+        {
+            if (connection.Connected)
+            {
+                connection._callback?.(newValue);
+            }
+            else
+            {
+                connections.delete(connection);
+            }
+        }
+    }
+
+    /**
+     * Sets a callback function to run every time the property changes. It will not be ran for equal values. <-- TODO is this possible?
+     * @param propName the name of the property
+     * @param type the DataType of the property
+     * @param onChange the callback to be ran whenever the property changes
+     * @param runImmediately whether to run the callback immediately with the current value of the property, defaults to true
+     * @returns the Connection object representing the now active connection.
+     */
+    public GetPropModifiedEvent<T extends DataType>(propName: string, type: T, onChange: (newValue: PropKeyType[T] | undefined) => any, runImmediately: boolean = true): PropModifiedConnection
+    {
+        const connection = new PropModifiedConnection(onChange);
+        let connections = this._propConnections.get(propName);
+        if (!connections)
+        {
+            connections = new Set<PropModifiedConnection>();
+            this._propConnections.set(propName, connections);
+        }
+        connections.add(connection);
+        if (runImmediately)
+        {
+            connection._callback?.(this.GetProp(propName, type));
+        }
+        return connection;
     }
 
     /**
