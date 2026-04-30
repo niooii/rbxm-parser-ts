@@ -126,7 +126,7 @@ export class StringParser extends DataTypeParser
         for (let i = 0; i < numInstances; ++i)
         {
             const str = bytes.getString();
-            outValues.push(str ? { type: DataType.String, value: str } : undefined);
+            outValues.push({ type: DataType.String, value: str });
         }
     }
 

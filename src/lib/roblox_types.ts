@@ -1453,10 +1453,14 @@ export class SharedString
     public Value: string;
     public Hash: Uint8Array;
 
-    public constructor(value: string, hash?: string)
+    public constructor(value: string, hash?: string | Uint8Array)
     {
         this.Value = value;
-        if (hash)
+        if (hash instanceof Uint8Array)
+        {
+            this.Hash = new Uint8Array(hash);
+        }
+        else if (hash)
         {
             const bytes = new Uint8Array(hash.length);
             for (let i = 0; i < hash.length; ++i)

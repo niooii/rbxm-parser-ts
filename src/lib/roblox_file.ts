@@ -3,7 +3,7 @@
  * Contains the core classes to load and interact with a Roblox model/place file.
  */
 
-import { ChildContainer, CoreInstance, SharedString } from "./roblox_types";
+import { ChildContainer, CoreInstance, DataType, SharedString, SharedStringValue } from "./roblox_types";
 import { RobloxFileDOMReader } from "./roblox_file_reader";
 import { RobloxFileDOMWriter } from "./roblox_file_writer";
 
@@ -60,6 +60,49 @@ export class RobloxFile extends ChildContainer
     {
         this._children.delete(instance);
         instance.Destroy();
+    }
+
+    /**
+     * Copies SharedString entries referenced by the given instances from a source file
+     * into this file, remapping property indices to match the new SharedStrings array.
+     * Call this before AddRoot when transferring instances between files.
+     * @param source the file the instances were read from
+     * @param instances the instance trees to remap
+     */
+    public TransferSharedStrings(source: RobloxFile, instances: CoreInstance[])
+    {
+        const indexMap = new Map<number, number>();
+
+        const walk = (inst: CoreInstance) =>
+        {
+            for (const [, prop] of inst.Props)
+            {
+                if (prop && prop.type === DataType.SharedString)
+                {
+                    const ssv = prop.value as SharedStringValue;
+                    const oldIndex = ssv.Index;
+                    if (!indexMap.has(oldIndex))
+                    {
+                        const entry = source.SharedStrings[oldIndex];
+                        const newIndex = this.SharedStrings.length;
+                        this.SharedStrings.push(
+                            entry ? new SharedString(entry.Value, entry.Hash) : new SharedString("")
+                        );
+                        indexMap.set(oldIndex, newIndex);
+                    }
+                    ssv.Index = indexMap.get(oldIndex)!;
+                }
+            }
+            for (const child of inst.Children)
+            {
+                walk(child);
+            }
+        };
+
+        for (const inst of instances)
+        {
+            walk(inst);
+        }
     }
 
     /**
