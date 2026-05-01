@@ -3,7 +3,7 @@
  * Contains the core classes for writing a .rbxm file.
  */
 
-import lz4 from "lz4js";
+import { compressBlock, compressBlockBound } from "@rinsuki/lz4-ts";
 
 import { RobloxFile } from "./roblox_file";
 import { DataType, CoreInstance, RobloxValue } from "./roblox_types";
@@ -182,12 +182,9 @@ export class RobloxFileDOMWriter extends RobloxFileDOM {
             };
         }
 
-        const bytes = new Uint8Array(lz4.compressBound(data.length));
-        const hashTable = new Uint32Array(1 << 16);
-        const size = lz4.compressBlock(data, bytes, 0, data.length, hashTable);
-
-        // lz4 returns 0 when data is too small to compress so we fall back to uncompressed
-        if (size === 0) {
+        const compressedBytes = new Uint8Array(compressBlockBound(data.length));
+        const compressedLength = compressBlock(data, compressedBytes, 0);
+        if (compressedLength === 0) {
             return {
                 compressedLength: 0,
                 uncompressedLength: data.length,
@@ -196,9 +193,9 @@ export class RobloxFileDOMWriter extends RobloxFileDOM {
         }
 
         return {
-            compressedLength: size,
+            compressedLength: compressedLength,
             uncompressedLength: data.length,
-            bytes: bytes.subarray(0, size)
+            bytes: compressedBytes.subarray(0, compressedLength)
         };
     }
 

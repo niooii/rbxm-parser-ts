@@ -1418,19 +1418,33 @@ export class Rect implements ICopyable
  */
 export class PhysicalProperties implements ICopyable
 {
+    public IsCustom: boolean;
     public Density: number;
     public Friction: number;
     public Elasticity: number;
     public FrictionWeight: number;
     public ElasticityWeight: number;
+    public AcousticAbsorption: number;
+    public HasAcousticAbsorption: boolean;
 
-    public constructor(density: number, friction: number, elasticity: number, frictionWeight: number, elasticityWeight: number)
+    public constructor(density: number, friction: number, elasticity: number, frictionWeight: number, elasticityWeight: number, acousticAbsorption?: number)
     {
+        this.IsCustom = true;
         this.Density = density;
         this.Friction = friction;
         this.Elasticity = elasticity;
         this.FrictionWeight = frictionWeight;
         this.ElasticityWeight = elasticityWeight;
+        this.HasAcousticAbsorption = acousticAbsorption !== undefined;
+        this.AcousticAbsorption = acousticAbsorption ?? 1.0;
+    }
+
+    public static Default(hasAcousticAbsorption: boolean = false): PhysicalProperties
+    {
+        const props = new PhysicalProperties(0, 0, 0, 0, 0);
+        props.IsCustom = false;
+        props.HasAcousticAbsorption = hasAcousticAbsorption;
+        return props;
     }
 
     public toString()
@@ -1440,7 +1454,10 @@ export class PhysicalProperties implements ICopyable
 
     public Copy()
     {
-        return new PhysicalProperties(this.Density, this.Friction, this.Elasticity, this.FrictionWeight, this.ElasticityWeight) as this;
+        const copy = new PhysicalProperties(this.Density, this.Friction, this.Elasticity, this.FrictionWeight, this.ElasticityWeight,
+            this.HasAcousticAbsorption ? this.AcousticAbsorption : undefined);
+        copy.IsCustom = this.IsCustom;
+        return copy as this;
     }
 }
 

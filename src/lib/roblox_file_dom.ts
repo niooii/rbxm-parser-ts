@@ -1125,25 +1125,30 @@ export class RectParser extends DataTypeParser
     }
 }
 
-export class PhysicalPropertiesParser extends DataTypeParser 
+export class PhysicalPropertiesParser extends DataTypeParser
 {
     public override read(bytes: RobloxFileByteReader, numInstances: number, outValues: Array<RobloxValue | undefined>)
     {
         for (let i = 0; i < numInstances; ++i)
         {
-            if (!bytes.getBool())
+            const flags = bytes.getUint8();
+            const isCustom = (flags & 1) !== 0;
+            const hasAcousticAbsorption = (flags & 2) !== 0;
+
+            if (!isCustom)
             {
-                outValues.push(undefined);
+                outValues.push({ type: DataType.PhysicalProperties, value: PhysicalProperties.Default(hasAcousticAbsorption) });
                 continue;
             }
-            
+
             const density = bytes.getFloat32();
             const friction = bytes.getFloat32();
             const elasticity = bytes.getFloat32();
             const frictionWeight = bytes.getFloat32();
             const elasticityWeight = bytes.getFloat32();
-            
-            outValues.push({ type: DataType.PhysicalProperties, value: new PhysicalProperties(density, friction, elasticity, frictionWeight, elasticityWeight) });
+            const acousticAbsorption = hasAcousticAbsorption ? bytes.getFloat32() : undefined;
+
+            outValues.push({ type: DataType.PhysicalProperties, value: new PhysicalProperties(density, friction, elasticity, frictionWeight, elasticityWeight, acousticAbsorption) });
         }
     }
 
@@ -1154,16 +1159,26 @@ export class PhysicalPropertiesParser extends DataTypeParser
             if (value?.type === DataType.PhysicalProperties)
             {
                 const props = value.value;
-                writer.putBool(true);
+                if (!props.IsCustom)
+                {
+                    writer.putUint8(props.HasAcousticAbsorption ? 2 : 0);
+                    continue;
+                }
+                const flags = 1 | (props.HasAcousticAbsorption ? 2 : 0);
+                writer.putUint8(flags);
                 writer.putFloat32(props.Density);
                 writer.putFloat32(props.Friction);
                 writer.putFloat32(props.Elasticity);
                 writer.putFloat32(props.FrictionWeight);
                 writer.putFloat32(props.ElasticityWeight);
+                if (props.HasAcousticAbsorption)
+                {
+                    writer.putFloat32(props.AcousticAbsorption);
+                }
             }
             else
             {
-                writer.putBool(false);
+                writer.putUint8(0);
             }
         }
     }
