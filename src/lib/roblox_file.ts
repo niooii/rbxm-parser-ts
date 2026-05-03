@@ -6,6 +6,7 @@
 import { ChildContainer, CoreInstance, DataType, SharedString, SharedStringValue } from "./roblox_types";
 import { RobloxFileDOMReader } from "./roblox_file_reader";
 import { RobloxFileDOMWriter } from "./roblox_file_writer";
+import { RobloxFileXMLReader, RobloxFileXMLWriter } from "./roblox_file_xml";
 
 // Helpful resources I used:
 // https://dom.rojo.space/binary - Documentation for .rbxm format
@@ -117,6 +118,24 @@ export class RobloxFile extends ChildContainer
     }
 
     /**
+     * Writes this model to XML text and returns it.
+     * @returns a string that contains the file data in XML form
+     */
+    public WriteToXmlString()
+    {
+        return new RobloxFileXMLWriter(this).write();
+    }
+
+    /**
+     * Writes this model to XML bytes and returns it.
+     * @returns a Uint8Array that contains the file data in XML form
+     */
+    public WriteToXmlBuffer()
+    {
+        return new TextEncoder().encode(this.WriteToXmlString());
+    }
+
+    /**
      * Create a RobloxFile from a buffer. You could use fs.readFile
      * to load a .rbxm file then pass the result to this function to load it.
      * @param buffer a data buffer
@@ -126,5 +145,25 @@ export class RobloxFile extends ChildContainer
     public static ReadFromBuffer(buffer: Uint8Array)
     {
         return new RobloxFileDOMReader().read(buffer);
+    }
+
+    /**
+     * Create a RobloxFile from XML bytes.
+     * @param buffer a data buffer
+     * @returns a Roblox file object
+     */
+    public static ReadFromXmlBuffer(buffer: Uint8Array)
+    {
+        return new RobloxFileXMLReader().read(buffer);
+    }
+
+    /**
+     * Create a RobloxFile from XML text.
+     * @param xml XML text
+     * @returns a Roblox file object
+     */
+    public static ReadFromXmlString(xml: string)
+    {
+        return new RobloxFileXMLReader().read(xml);
     }
 }
