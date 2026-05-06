@@ -107,6 +107,71 @@ export class RobloxFile extends ChildContainer
     }
 
     /**
+     * Returns a deep copy of this model.
+     * @returns a copy of this model
+     */
+    public Copy()
+    {
+        const copy = new RobloxFile();
+        const instanceMap = new Map<CoreInstance, CoreInstance>();
+
+        const mapInstances = (source: CoreInstance, target: CoreInstance) =>
+        {
+            instanceMap.set(source, target);
+
+            for (let i = 0; i < source.Children.length; ++i)
+            {
+                const child = source.Children[i];
+                const childCopy = target.Children[i];
+                if (!child || !childCopy)
+                {
+                    throw new Error("Copied instance tree does not match source tree");
+                }
+                mapInstances(child, childCopy);
+            }
+        };
+
+        for (const [key, value] of this.Metadata)
+        {
+            copy.Metadata.set(key, value);
+        }
+
+        for (const sharedString of this.SharedStrings)
+        {
+            copy.SharedStrings.push(new SharedString(sharedString.Value, sharedString.Hash));
+        }
+
+        for (const root of this.Roots)
+        {
+            const rootCopy = root.Copy();
+            copy.AddRoot(rootCopy);
+            mapInstances(root, rootCopy);
+        }
+
+        for (const [instance, referent] of this.ReferentMap)
+        {
+            const instanceCopy = instanceMap.get(instance);
+            if (instanceCopy)
+            {
+                copy.ReferentMap.set(instanceCopy, referent);
+            }
+        }
+
+        for (const [instance, instanceCopy] of instanceMap)
+        {
+            for (const [name, prop] of instance.Props)
+            {
+                if (prop.type === DataType.Referent)
+                {
+                    instanceCopy.SetProp(name, DataType.Referent, instanceMap.get(prop.value) ?? prop.value, false);
+                }
+            }
+        }
+
+        return copy;
+    }
+
+    /**
      * Writes this model to a Uint8Array and returns it.
      * @returns a Uint8Array that contains the file data in binary form
      * @example const buffer = file.WriteToBuffer();

@@ -505,7 +505,7 @@ export class CoreInstance extends ChildContainer
         return undefined;
     }
 
-    protected static CopyValue(rbxValue: RobloxValue)
+    protected static CopyValue(rbxValue: RobloxValue, refMap?: Map<CoreInstance, CoreInstance>)
     {
         switch (rbxValue.type)
         {
@@ -516,14 +516,20 @@ export class CoreInstance extends ChildContainer
             case DataType.Int64:
             case DataType.String:
             case DataType.Bool:
-            case DataType.Referent:
             case DataType.Enum:
             case DataType.Bytecode:
             case DataType.SecurityCapabilities:
                 return rbxValue.value;
+            case DataType.Referent:
+                return refMap?.get(rbxValue.value) ?? rbxValue.value;
             default:
                 return rbxValue.value.Copy();
         }
+    }
+
+    protected static CopyPropValue(rbxValue: RobloxValue, refMap?: Map<CoreInstance, CoreInstance>)
+    {
+        return { type: rbxValue.type, value: CoreInstance.CopyValue(rbxValue, refMap) } as RobloxValue;
     }
 
     /**
@@ -684,6 +690,79 @@ export class CoreInstance extends ChildContainer
     }
 
     /**
+     * Returns a deep copy of this Instance and its descendants.
+     * @returns a copy of this Instance
+     */
+    public Copy()
+    {
+        const instanceMap = new Map<CoreInstance, CoreInstance>();
+        this.copyInstances(instanceMap);
+        this.copyProperties(instanceMap);
+        this.copyChildren(instanceMap);
+        return instanceMap.get(this)! as this;
+    }
+
+    protected copyInstances(instanceMap: Map<CoreInstance, CoreInstance>)
+    {
+        const instance = this.createCopyInstance();
+        instanceMap.set(this, instance);
+
+        for (const child of this.Children)
+        {
+            child.copyInstances(instanceMap);
+        }
+    }
+
+    protected createCopyInstance()
+    {
+        let instance: CoreInstance;
+        if (this.constructor === CoreInstance)
+        {
+            instance = new CoreInstance(this._isService);
+        }
+        else
+        {
+            const constructor = this.constructor as new () => CoreInstance;
+            instance = new constructor();
+        }
+
+        instance.ResetProps();
+        instance._classNameList.length = 0;
+        for (const className of this._classNameList)
+        {
+            instance.addClassName(className);
+        }
+        instance._isService = this._isService;
+        instance._destroyed = this._destroyed;
+        return instance;
+    }
+
+    protected copyProperties(instanceMap: Map<CoreInstance, CoreInstance>)
+    {
+        const instance = instanceMap.get(this)!;
+        for (const [name, value] of this.Props)
+        {
+            instance._props.set(name, CoreInstance.CopyPropValue(value, instanceMap));
+        }
+
+        for (const child of this.Children)
+        {
+            child.copyProperties(instanceMap);
+        }
+    }
+
+    protected copyChildren(instanceMap: Map<CoreInstance, CoreInstance>)
+    {
+        const instance = instanceMap.get(this)!;
+        for (const child of this.Children)
+        {
+            const childCopy = instanceMap.get(child)!;
+            childCopy.Parent = instance;
+            child.copyChildren(instanceMap);
+        }
+    }
+
+    /**
      * A title string that represents this instance for debugging purposes.
      * @returns \{Class name\} "\{Name\}"
      */
@@ -827,7 +906,7 @@ export class Ray implements ICopyable
 
     public Copy() 
     {
-        return new Ray(this.Origin, this.Direction) as this;
+        return new Ray(this.Origin.Copy(), this.Direction.Copy()) as this;
     }
 }
 
